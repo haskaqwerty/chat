@@ -10,7 +10,6 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-
 public class ChatServerGUI extends JFrame  implements ActionListener , ChatServerListener {
     public static final int POS_X = 1100;
     public static final int POS_Y = 150;
@@ -19,7 +18,7 @@ public class ChatServerGUI extends JFrame  implements ActionListener , ChatServe
     public static final String TITLE = "Chat Server";
     public static final String START_LISTENING = "Start Listening";
     public static final String DROP_ALL_CLIENTS = "Drop All Clients";
-    public static final String STOP_LISTENING = "Stop Listenig";
+    public static final String STOP_LISTENING = "Stop Listening";
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(new Runnable() {
@@ -46,8 +45,9 @@ public class ChatServerGUI extends JFrame  implements ActionListener , ChatServe
 
         JPanel upperPanel = new JPanel(new GridLayout(1,3));
         upperPanel.add(btnStartListening);
-        upperPanel.add(btnDropAllCLients);
         upperPanel.add(btnStopListening);
+        upperPanel.add(btnDropAllCLients);
+
         add(upperPanel, BorderLayout.NORTH);
 
 

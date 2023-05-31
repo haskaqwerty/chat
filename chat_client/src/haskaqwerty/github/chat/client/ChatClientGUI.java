@@ -1,15 +1,18 @@
 package haskaqwerty.github.chat.client;
 
 import haskaqwerty.github.chat.server.library.DefaultGUIExceptionHandler;
+import haskaqwerty.github.network.SocketThread;
+import haskaqwerty.github.network.SocketThreadListener;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.IOException;
+import java.net.Socket;
 
-public class ChatClientGUI extends JFrame implements ActionListener {
-//    public static final int POS_X = 600;
-//    public static final int POS_Y = 150;
+public class ChatClientGUI extends JFrame implements ActionListener , SocketThreadListener {
+
     public static final int WIDTH = 800;
     public static final int HEIGHT = 300;
     public static final String TITLE = "Chat Client";
@@ -24,9 +27,11 @@ public class ChatClientGUI extends JFrame implements ActionListener {
     }
 
     private final JPanel upperPanel = new JPanel(new GridLayout(2,3));
-    private final JTextField fieldIPAddr = new JTextField("82.222.249.131");
+    private final JTextField fieldIPAddr = new JTextField("127.0.0.1");
+    //
+    //82.222.249.131"
     private final JTextField fieldPort = new JTextField("8189");
-    private final JCheckBox chkAlwaysOnTop = new JCheckBox("Always on top");
+    private final JCheckBox chkAlwaysOnTop = new JCheckBox("Always on top",true);
     private final JTextField fieldLogin = new JTextField("login_1");
     private final JPasswordField fieldPass = new JPasswordField("pass_1");
     private final JButton btnLogin = new JButton("LOGIN");
@@ -71,13 +76,11 @@ public class ChatClientGUI extends JFrame implements ActionListener {
         scrollUsers.setPreferredSize(new Dimension(150,0));
         add(scrollUsers,BorderLayout.EAST);
 
-
         bottomPanel.add(btnDisconnect,BorderLayout.WEST);
         bottomPanel.add(fieldInput,BorderLayout.CENTER);
         bottomPanel.add(btnSend,BorderLayout.EAST);
         add(bottomPanel, BorderLayout.SOUTH);
-        bottomPanel.setVisible(false);
-
+        bottomPanel.setVisible(true);
 
         setAlwaysOnTop(chkAlwaysOnTop.isSelected());
         setVisible(true);
@@ -91,9 +94,10 @@ public class ChatClientGUI extends JFrame implements ActionListener {
         if (src == fieldIPAddr || src == fieldPort || src == fieldPass || src ==fieldLogin || src == btnLogin) {
             connect();
         } else
-        if (src == btnLogin) {
-
-        } else if (src == btnDisconnect) {
+//        if (src == btnLogin) {
+//
+//        } else
+        if (src == btnDisconnect) {
             disconnect();
 
         } else if (src == btnSend || src == fieldInput) {
@@ -106,15 +110,22 @@ public class ChatClientGUI extends JFrame implements ActionListener {
             throw new RuntimeException("Unknown src = " + src);
         }
     }
+    private SocketThread socketThread;
     private void connect()
     {
-        upperPanel.setVisible(false);
-        bottomPanel.setVisible(true);
+        try {
+            Socket socket = new Socket(fieldIPAddr.getText(),Integer.parseInt(fieldPort.getText()));
+            socketThread = new SocketThread(this,"SocketThread",socket);
+        } catch (IOException e) {
+            e.printStackTrace();
+            log.append("Exception: " + e.getMessage() + "\n");
+            log.setCaretPosition(log.getDocument().getLength());
+        }
+
     }
     private void disconnect()
     {
-        bottomPanel.setVisible(false);
-        upperPanel.setVisible(true);
+        socketThread.close();
     }
     private void sendMsg()
     {
@@ -122,7 +133,62 @@ public class ChatClientGUI extends JFrame implements ActionListener {
         if(msg.equals("")) return;
         fieldInput.setText(null);
         fieldInput.requestFocus();
-        log.append(msg+"\n");
+        socketThread.sendMessage(msg);
     }
 
+    @Override
+    public void onStartSocketThread(SocketThread socketThread) {
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                log.append("Поток сокета запушен\n");
+                log.setCaretPosition(log.getDocument().getLength());
+            }
+        });
+    }
+
+    @Override
+    public void onStopSocketThread(SocketThread socketThread) {
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                log.append("Соединение потеряно\n");
+                log.setCaretPosition(log.getDocument().getLength());
+            }
+        });
+    }
+
+    @Override
+    public void onReadySocketThread(SocketThread socketThread, Socket socket) {
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                log.append("Соединение установлено\n");
+                log.setCaretPosition(log.getDocument().getLength());
+            }
+        });
+    }
+
+    @Override
+    public void onRecieveString(SocketThread socketThread, Socket socket, String value) {
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                log.append(value + "\n");
+                log.setCaretPosition(log.getDocument().getLength());
+            }
+        });
+    }
+
+    @Override
+    public void onExceptionSocketThread(SocketThread socketThread, Socket socket, Exception e) {
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                e.printStackTrace();
+                log.append("Exception: " + e.getMessage() + "\n");
+                log.setCaretPosition(log.getDocument().getLength());
+            }
+        });
+    }
 }
